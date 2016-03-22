@@ -1,0 +1,35 @@
+# Project: CrystalWarp
+# Makefile created by Dev-C++ 5.6.3
+
+CPP      = g++.exe -D__DEBUG__
+CC       = gcc.exe -D__DEBUG__
+WINDRES  = windres.exe
+RES      = Asteroids_private.res
+OBJ      = CrystalWarp.o Bitmapdll.o $(RES)
+LINKOBJ  = CrystalWarp.o Bitmapdll.o $(RES)
+LIBS     = -L"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib" -L"C:/Program Files (x86)/Dev-Cpp/MinGW32/mingw32/lib" -static-libstdc++ -static-libgcc -mwindows "../../../../Program Files (x86)/Dev-Cpp/MinGW32/lib/libwinmm.a" -g3
+INCS     = -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib/gcc/mingw32/4.8.1/include"
+CXXINCS  = -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib/gcc/mingw32/4.8.1/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib/gcc/mingw32/4.8.1/include/c++"
+BIN      = CrystalWarp.exe
+CXXFLAGS = $(CXXINCS) -Wall -Wextra -g3
+CFLAGS   = $(INCS) -Wall -Wextra -g3
+RM       = rm.exe -f
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	${RM} $(OBJ) $(BIN)
+
+$(BIN): $(OBJ)
+	$(CPP) $(LINKOBJ) -o $(BIN) $(LIBS)
+
+CrystalWarp.o: CrystalWarp.cpp
+	$(CPP) -c CrystalWarp.cpp -o CrystalWarp.o $(CXXFLAGS)
+
+Bitmapdll.o: Bitmapdll.cpp
+	$(CPP) -c Bitmapdll.cpp -o Bitmapdll.o $(CXXFLAGS)
+
+Asteroids_private.res: Asteroids_private.rc crystalwarp.rc 
+	$(WINDRES) -i Asteroids_private.rc --input-format=rc -o Asteroids_private.res -O coff 
