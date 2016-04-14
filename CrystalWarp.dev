@@ -11,7 +11,7 @@ ResourceIncludes=
 MakeIncludes=
 Compiler=_@@_
 CppCompiler=
-Linker="../../../../Program Files (x86)/Dev-Cpp/MinGW32/lib/libwinmm.a"_@@_
+Linker="../../../../Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib32/libwinmm.a"_@@_
 IsCpp=1
 Icon=
 ExeOutput=
@@ -19,7 +19,7 @@ ObjectOutput=
 LogOutput=
 LogOutputEnabled=0
 OverrideOutput=0
-OverrideOutputName=Asteroids.exe
+OverrideOutputName=CrystalWarp.exe
 HostApplication=
 UseCustomMakefile=0
 CustomMakefile=
@@ -27,9 +27,9 @@ CommandLine=
 Folders=
 IncludeVersionInfo=0
 SupportXPThemes=0
-CompilerSet=0
-CompilerSettings=0000000000110000001000000
-UnitCount=7
+CompilerSet=3
+CompilerSettings=0000000100000000000000000
+UnitCount=8
 
 [VersionInfo]
 Major=1
@@ -119,4 +119,13 @@ Link=0
 Priority=1000
 OverrideBuildCmd=0
 BuildCmd=
+
+[Unit8]
+FileName=scratch.txt
+Folder=
+Compile=0
+Link=0
+Priority=1000
+OverrideBuildCmd=1
+BuildCmd=<override this command>
 

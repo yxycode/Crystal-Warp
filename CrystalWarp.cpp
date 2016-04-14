@@ -183,11 +183,13 @@ WinMain (HINSTANCE hThisInstance,
 	Bitmap_Dll_Loader::Bitmap_InitFontGDI( NULL, 0, Color(0,0,255), 3 );  
 	Bitmap_Dll_Loader::Bitmap_InitFontGDI( NULL, 0, Color(0,255,255), 4 ); 
 */	
+    GameObject::ItsWorld = &TheWorld;
     Nasty::Init();
+    StaticObject::Init();
     ScoreBar *sb = new ScoreBar();
 	TheWorld.Init(1);    	
 	TheWorld.Add(sb);
-    GameObject::ItsWorld = &TheWorld;
+    
     
 /*    
     sbx.LoadSound( 0, "warp.wav" );

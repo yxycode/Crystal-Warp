@@ -1,18 +1,18 @@
 # Project: CrystalWarp
-# Makefile created by Dev-C++ 5.6.3
+# Makefile created by Dev-C++ 5.11
 
-CPP      = g++.exe -D__DEBUG__
-CC       = gcc.exe -D__DEBUG__
+CPP      = g++.exe
+CC       = gcc.exe
 WINDRES  = windres.exe
 RES      = Asteroids_private.res
 OBJ      = CrystalWarp.o Bitmapdll.o $(RES)
 LINKOBJ  = CrystalWarp.o Bitmapdll.o $(RES)
-LIBS     = -L"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib" -L"C:/Program Files (x86)/Dev-Cpp/MinGW32/mingw32/lib" -static-libstdc++ -static-libgcc -mwindows "../../../../Program Files (x86)/Dev-Cpp/MinGW32/lib/libwinmm.a" -g3
-INCS     = -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib/gcc/mingw32/4.8.1/include"
-CXXINCS  = -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib/gcc/mingw32/4.8.1/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib/gcc/mingw32/4.8.1/include/c++"
+LIBS     = -L"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib32" -L"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib32" -static-libgcc -mwindows "../../../../Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib32/libwinmm.a" -m32
+INCS     = -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include"
+CXXINCS  = -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include/c++"
 BIN      = CrystalWarp.exe
-CXXFLAGS = $(CXXINCS) -Wall -Wextra -g3
-CFLAGS   = $(INCS) -Wall -Wextra -g3
+CXXFLAGS = $(CXXINCS) -m32
+CFLAGS   = $(INCS) -m32
 RM       = rm.exe -f
 
 .PHONY: all all-before all-after clean clean-custom
@@ -31,5 +31,6 @@ CrystalWarp.o: CrystalWarp.cpp
 Bitmapdll.o: Bitmapdll.cpp
 	$(CPP) -c Bitmapdll.cpp -o Bitmapdll.o $(CXXFLAGS)
 
-Asteroids_private.res: Asteroids_private.rc crystalwarp.rc 
-	$(WINDRES) -i Asteroids_private.rc --input-format=rc -o Asteroids_private.res -O coff 
+Asteroids_private.res: Asteroids_private.rc crystalwarp.rc
+	$(WINDRES) -i Asteroids_private.rc -F pe-i386 --input-format=rc -o Asteroids_private.res -O coff 
+

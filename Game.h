@@ -320,7 +320,7 @@ int CheckCollide();
 };
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
 
-const float FlyingSaucer::SPEED_INCREMENT = 1.00;
+const float FlyingSaucer::SPEED_INCREMENT = 2.00;
 const float FlyingSaucer::MAX_SPEED = 6.0;
 const float FlyingSaucer::FRICTION = -0.2;
 
@@ -395,11 +395,13 @@ protected:
   int CheckCollideBoundaries();
   void Move();
   void BounceSolid();
+  void BounceSolidNoBoundary();
   void BounceRandom();
   void SpeedChangeRandom();
   void Do();
   void Draw();
   int CheckCollideProjectiles();
+  int CheckCollideStaticObjects();
   void CenterNasty( Nasty *ns );
   int CheckOutsideBoundaries();
   int CheckHitPoints();
@@ -421,8 +423,6 @@ class StaticObject : public GameObject
 public:
     
   int SubId;
-  float X, Y;
-  int Width, Height;
   float Speed;
   
   int TickCounter;
@@ -442,13 +442,23 @@ public:
   int AnimationFrameCount[MAX_SUB_OBJECT_COUNT];
   int AnimationDelay[MAX_SUB_OBJECT_COUNT];
   int AnimationIndex[MAX_SUB_OBJECT_COUNT];
-
+  int CollideDetection[MAX_SUB_OBJECT_COUNT];
+  int ActiveFlag[MAX_SUB_OBJECT_COUNT];
+  
   const static int SID_NOTHING = 0,
-    SID_HORIZONTAL_WALL = 1,
-    SID_VERTICAL_WALL = 2,
-    SID_LEFT_PORTAL = 3,
-    SID_RIGHT_PORTAL = 4,
-    SID_EXIT_PORTAL = 5;
+    SID_CRYSTAL = 1,
+    SID_LEFT_PORTAL = 2,
+    SID_RIGHT_PORTAL = 3,
+    SID_EXIT_PORTAL = 4,
+    SID_UPPER_WALL = 5,
+    SID_LOWER_WALL = 6,
+    SID_LEFT_WALL = 7,
+    SID_RIGHT_WALL = 8;
+    
+  const static int COLLIDE_DETECTION_ALL_OBJECTS = 1,
+    COLLIDE_DETECTION_NASTY = 2,
+    COLLIDE_DETECTION_SAUCER = 3;
+      
     
   int StatusFlag;  
   
@@ -458,11 +468,15 @@ public:
     STATUS_MOVING_OPENED_PORTAL = 3;    
     
 StaticObject( int nSubId );
+static void Init();
 void Draw();
 void Do();
+int CheckCollide( Nasty *NastyObj );
 
 protected:
 void Animate();
+void SpawnNasties();
+
 };
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
 //########################################################################################
@@ -482,6 +496,7 @@ void Draw();
 void InputKey( int pressflag, int vk_code);
 void Add( GameObject *obj );
 int GetCount( int Object_Id );
+int GetCount( int Object_Id, int Object_SubId );
 void *GetObject( int Object_Id, int Object_SubId );
 
 void PlaySound( int index );
@@ -602,6 +617,7 @@ void World::Init(int level)
          GameObjectList[i] = NULL;
       }
  }
+ 
  /*
  Asteroid *as;
       
@@ -624,6 +640,7 @@ void World::Init(int level)
 FlyingSaucer *fs = new FlyingSaucer();
 Add(fs);
 
+/*
 Nasty *nsty;
 int id;
 int num_list[] = { 1, 2, 3, 4, 7, 9, 5, 6, 8, 10, 11, 12, 21 };
@@ -632,10 +649,10 @@ int options[] = { 0, 0, 0 };
 for( i = 0; i < 20; i++ )
 {
      id = num_list[rand() % (sizeof(num_list)/sizeof(int) + 1)];
-/*     
-     if( id == 5 )
-       MessageBox(0, "And text here", "MessageBox caption", MB_OK);
-*/       
+     
+     //if( id == 5 )
+     //  MessageBox(0, "And text here", "MessageBox caption", MB_OK);
+       
      nsty = new Nasty(id);
      options[0] = rand() % 2 + 1;
      nsty->SetSpecialXYPosition( options );
@@ -643,7 +660,16 @@ for( i = 0; i < 20; i++ )
      nsty->StartSlide(20, 1);
      Add(nsty);
 }
- 
+*/
+StaticObject *sobj;
+
+sobj = new StaticObject( StaticObject::SID_LEFT_PORTAL );
+Add(sobj);
+sobj = new StaticObject( StaticObject::SID_RIGHT_PORTAL );
+Add(sobj);
+sobj = new StaticObject( StaticObject::SID_EXIT_PORTAL );
+Add(sobj);
+
 /* 
  Ship *ship = new Ship();
  Add(ship);
@@ -701,6 +727,43 @@ int World::GetCount( int Object_Id )
 	     if( GameObjectList[i]->Id == Object_Id )
 	         count++;
     
+    return count;
+}
+//~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
+int World::GetCount( int Object_Id, int Object_SubId )
+{ 
+	int i, count = 0;
+   
+	for( i = 0; i < MAX_GAME_OBJECTS; i++ )
+	   if( GameObjectList[i] != NULL )
+	   {
+	     if( GameObjectList[i]->Id == GameObject::ID_PROJECTILE && Object_Id == GameObject::ID_PROJECTILE )
+	     {
+	         count++;
+	     }
+	     else
+	     if( GameObjectList[i]->Id == GameObject::ID_NASTY && Object_Id == GameObject::ID_NASTY )
+	     {
+	        Nasty *nst = (Nasty*)GameObjectList[i];
+	        
+	        if( Object_SubId == 0 )
+  	            count++;
+  	        else
+  	        if( Object_SubId == nst->SubId )
+  	            count++;
+	     }
+	     else
+	     if( GameObjectList[i]->Id == GameObject::ID_STATIC_OBJECT && Object_Id == GameObject::ID_STATIC_OBJECT )
+	     {
+	        StaticObject *sobj = (StaticObject*)GameObjectList[i];
+	        
+	        if( Object_SubId == 0 )
+  	            count++;
+  	        else
+  	        if( Object_SubId == sobj->SubId )
+  	            count++;
+	     }       	     
+       }
     return count;
 }
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
@@ -1188,23 +1251,6 @@ void Projectile::AddSpeed( float x_sum, float y_sum )
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
 //########################################################################################
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
-/*
-class ScoreBar : public GameObject
-{
-public:
-  static const int GAME_STATE_GAME_OVER = 0;
-  static const int GAME_STATE_PLAYING = 1;
-  static const int GAME_STATE_SHIP_DEAD = 2;
-  static int GameState;
-  
-  static int CurrentLives, CurrentLevel, CurrentScore, HighScore;
-
-ScoreBar();
-ScoreBar::void Do();
-ScoreBar::void Draw();  
-};
-*/ 
-//~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
 ScoreBar::ScoreBar()
 {
   Id = ID_SCOREBAR;
@@ -1254,8 +1300,12 @@ void ScoreBar::Draw()
   World *WorldPtr = (World *)ItsWorld;
   
   char str[1000];
+/*  
   sprintf(str,"SHIP x %2d  LEVEL %2d  SCORE %10d  HIGHSCORE %10d", CurrentLives, CurrentLevel,
       CurrentScore, HighScore );
+*/
+  sprintf( str, "Nasties # %d Projectile # %d", WorldPtr->GetCount( ID_NASTY, 0 ), WorldPtr->GetCount( ID_PROJECTILE, 0 ) );
+  
       
   Bitmap_Dll_Loader::Bitmap_DrawTextGDI( str, 5, 10, 0 );
   Bitmap_Dll_Loader::Bitmap_DrawTextGDI( debugstr, 5, 30, 0 );
@@ -1819,6 +1869,32 @@ void Nasty::BounceSolid()
   }
 }
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
+void Nasty::BounceSolidNoBoundary()
+{
+  int angle_list[4];
+  float cur_x = X;
+  float cur_y = Y;
+  int i;
+  
+  angle_list[0] = Angle;
+      
+  CalculateBounceAngles(angle_list);
+  
+  for( i = 0; i < 4; i++ )
+  {
+    if( angle_list[i] < 0 )
+        continue;
+        
+    X += cos(angle_list[i] * PI/180) * Speed;  
+    Y += -sin(angle_list[i] * PI/180) * Speed;  
+    Angle = (angle_list[i] + rand() % 4) % 360;
+    
+    if( CheckCollideStaticObjects() == 0 )
+        break;
+    X = cur_x; Y = cur_y;   
+  }
+}
+//~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
 void Nasty::BounceRandom()
 {
   Angle = rand() % 360;     
@@ -1903,6 +1979,17 @@ void Nasty::Do()
     
       CheckCollideProjectiles();
       CheckHitPoints();   
+      
+      if( CheckCollideStaticObjects() >= 1 )
+      {
+          BounceSolidNoBoundary();
+          
+          if( SubId == SID_TENTAWARBLE )
+          {
+            FollowPlayerShipCounter = 0;
+            FlyingSaucer::StillnessCounter = 0;
+          }
+      }
   }
     
   if( TickCounter % AnimationDelay == 0 )
@@ -1960,6 +2047,28 @@ int Nasty::CheckCollideProjectiles()
       HitPoints--;
   }
   return CollideFlag;
+}
+//~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
+int Nasty::CheckCollideStaticObjects()
+{
+   int i, collideflag = 0;
+   World *WorldPtr = (World *)ItsWorld;
+   
+   for( i = 0; i < World::MAX_GAME_OBJECTS; i++ )
+   {     
+     if( WorldPtr->GameObjectList[i] != NULL )
+      if( WorldPtr->GameObjectList[i]->Id == ID_STATIC_OBJECT )
+        {
+          StaticObject *sobj = (StaticObject*)WorldPtr->GameObjectList[i];
+          
+          if( sobj->CheckCollide( this ) == 1 )
+          {
+            collideflag = 1;
+            break;
+          }
+        }
+   }
+   return collideflag;
 }
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
 void Nasty::CenterNasty( Nasty *ns )
@@ -2177,8 +2286,8 @@ case 5:
     if( object_id == ID_STATIC_OBJECT )
     {
        sttc_obj_ptr = (StaticObject*)((World*)ItsWorld)->GetObject( object_id, object_sub_id ); 
-       X =  sttc_obj_ptr->X + sttc_obj_ptr->Width/2 + relative_x - Width/2;
-       Y = sttc_obj_ptr->Y + sttc_obj_ptr->Height/2 + relative_y - Height/2;       
+       X =  sttc_obj_ptr->XList[0] + sttc_obj_ptr->WidthList[0]/2 + relative_x - Width/2;
+       Y = sttc_obj_ptr->YList[0] + sttc_obj_ptr->HeightList[0]/2 + relative_y - Height/2;       
     }
     
     break;
@@ -2217,36 +2326,165 @@ TickCounter = 1;
 for( i = 0; i < MAX_SUB_OBJECT_COUNT; i++ )
 {
    AnimationFrameCount[i] = AnimationFrameSrcXList[i] = AnimationFrameSrcYList[i] = WidthList[i] = HeightList[i] = AnimationIndex[i] = 0;   
+   XList[i] = YList[i] = 0;
    AnimationDelay[i] = ANIMATION_DELAY_1;
+   PictureIndex[i] = 3; ActiveFlag[i] = 1; CollideDetection[i] = COLLIDE_DETECTION_ALL_OBJECTS;
 }
 
 switch( SubId )
 {
-case SID_HORIZONTAL_WALL:
-Width = 40; Height = 20;
-break;
-case SID_VERTICAL_WALL:
-Width = 20; Height = 40;
-break;
-case SID_LEFT_PORTAL:
-Width = 40; Height = 80;
-break;
-case SID_RIGHT_PORTAL:
-Width = 40; Height = 80;
-break;
-case SID_EXIT_PORTAL:
-Width = 80; Height = 40;
+case SID_UPPER_WALL:
+    WidthList[0] = 40; HeightList[0] = 20;
+    AnimationFrameSrcXList[0] = 0;
+    AnimationFrameSrcYList[0] = 0;
+    AnimationFrameCount[0] = 3;
+    break;
+    
+case SID_LOWER_WALL:
+    WidthList[0] = 40; HeightList[0] = 20;
+    AnimationFrameSrcXList[0] = 0;
+    AnimationFrameSrcYList[0] = 21;
+    AnimationFrameCount[0] = 3;
+    break;
+    
+case SID_LEFT_WALL:
+    WidthList[0] = 20; HeightList[0] = 40;
+    AnimationFrameSrcXList[0] = 0;
+    AnimationFrameSrcYList[0] = 42;
+    AnimationFrameCount[0] = 3;
+    break;
+        
+case SID_RIGHT_WALL:
+    WidthList[0] = 20; HeightList[0] = 40;
+    AnimationFrameSrcXList[0] = 63;
+    AnimationFrameSrcYList[0] = 42;
+    AnimationFrameCount[0] = 3;
+    break;
 
-AnimationFrameCount[0] = 1;
+case SID_LEFT_PORTAL:
+SubObjectCount = 7;
+    
+WidthList[0] = 50; HeightList[0] = 100;
 AnimationFrameSrcXList[0] = 0;
-AnimationFrameSrcYList[0] = 0;
-WidthList[0] = 120;
-HeightList[0] = 40;
+AnimationFrameSrcYList[0] = 134;
+AnimationFrameCount[0] = 1;
+XList[0] = 0; YList[0] = SCREEN_HEIGHT_PIXELS/2 - HeightList[0]/2;
+CollideDetection[0] = COLLIDE_DETECTION_SAUCER;
+
+WidthList[1] = 50; HeightList[1] = 10;
+AnimationFrameSrcXList[1] = 0;
+AnimationFrameSrcYList[1] = 124;
+AnimationFrameCount[1] = 1;
+XList[1] = 0; YList[1] = YList[0] - 10;
+
+WidthList[2] = 50; HeightList[2] = 10;
+AnimationFrameSrcXList[2] = 0;
+AnimationFrameSrcYList[2] = 234;
+AnimationFrameCount[2] = 1;
+XList[2] = 0; YList[2] = YList[0] + 100;
+
+WidthList[3] = 50; HeightList[3] = 100;
+AnimationFrameCount[3] = 0;
+XList[3] = XList[0] - 100; YList[3] = YList[0];
+CollideDetection[3] = COLLIDE_DETECTION_SAUCER;
+
+WidthList[4] = 50; HeightList[4] = 10;
+AnimationFrameCount[4] = 0;
+XList[4] = XList[0] - 100; YList[4] = YList[0] - 10;
+
+WidthList[5] = 50; HeightList[5] = 10;
+AnimationFrameCount[5] = 0;
+XList[5] = XList[0] - 100; YList[5] = YList[0] + 100;
+
+WidthList[6] = 10; HeightList[6] = 100;
+AnimationFrameCount[6] = 0;
+XList[6] = XList[0] - 110; YList[6] = YList[0];
+    
+SpawnNasties();
+break;
+
+case SID_RIGHT_PORTAL:
+SubObjectCount = 7;
+    
+WidthList[0] = 50; HeightList[0] = 100;
+AnimationFrameSrcXList[0] = 0;
+AnimationFrameSrcYList[0] = 134;
+AnimationFrameCount[0] = 1;
+XList[0] = SCREEN_WIDTH_PIXELS - WidthList[0]; YList[0] = SCREEN_HEIGHT_PIXELS/2 - HeightList[0]/2;
+CollideDetection[0] = COLLIDE_DETECTION_SAUCER;
+
+WidthList[1] = 50; HeightList[1] = 10;
+AnimationFrameSrcXList[1] = 0;
+AnimationFrameSrcYList[1] = 124;
+AnimationFrameCount[1] = 1;
+XList[1] = XList[0]; YList[1] = YList[0] - 10;
+
+WidthList[2] = 50; HeightList[2] = 10;
+AnimationFrameSrcXList[2] = 0;
+AnimationFrameSrcYList[2] = 234;
+AnimationFrameCount[2] = 1;
+XList[2] = XList[0]; YList[2] = YList[0] + 100;
+
+WidthList[3] = 50; HeightList[3] = 100;
+AnimationFrameCount[3] = 0;
+XList[3] = XList[0] + 100; YList[3] = YList[0];
+CollideDetection[3] = COLLIDE_DETECTION_SAUCER;
+
+WidthList[4] = 50; HeightList[4] = 10;
+AnimationFrameCount[4] = 0;
+XList[4] = XList[0] + 100; YList[4] = YList[0] - 10;
+
+WidthList[5] = 50; HeightList[5] = 10;
+AnimationFrameCount[5] = 0;
+XList[5] = XList[0] + 100; YList[5] = YList[0] + 100;
+
+WidthList[6] = 10; HeightList[6] = 100;
+AnimationFrameCount[6] = 0;
+XList[6] = XList[0] + 110; YList[6] = YList[0];
+
+SpawnNasties();
+break;
+
+case SID_EXIT_PORTAL:
+SubObjectCount = 4;
+    
+WidthList[0] = 80; HeightList[0] = 10;
+AnimationFrameSrcXList[0] = 0;
+AnimationFrameSrcYList[0] = 83;
+AnimationFrameCount[0] = 1;
+XList[0] = SCREEN_WIDTH_PIXELS/2 - WidthList[0]/2; YList[0] = SCREEN_HEIGHT_PIXELS - 40;
+
+WidthList[1] = 10; HeightList[1] = 30;
+AnimationFrameSrcXList[1] = 0;
+AnimationFrameSrcYList[1] = 93;
+AnimationFrameCount[1] = 1;
+XList[1] = XList[0]; YList[1] = YList[0] + 10;
+
+WidthList[2] = 60; HeightList[2] = 30;
+AnimationFrameSrcXList[2] = 10;
+AnimationFrameSrcYList[2] = 93;
+AnimationFrameCount[2] = 1;
+XList[2] = XList[0] + 10; YList[2] = YList[0] + 10;
+CollideDetection[2] = 0;
+
+WidthList[3] = 10; HeightList[3] = 30;
+AnimationFrameSrcXList[3] = 70;
+AnimationFrameSrcYList[3] = 93;
+AnimationFrameCount[3] = 1;
+XList[3] = XList[0] + 70; YList[3] = YList[0] + 10;
+
+break;
 
 default:
 break;
 }
 
+
+}
+//~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*  
+void StaticObject::Init()
+{
+  Bitmap_Dll_Loader::Bitmap_LoadImageGDI( 3, "static_tiles.png" );       
 }
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*  
 void StaticObject::Draw()
@@ -2254,10 +2492,9 @@ void StaticObject::Draw()
 int i;
 
 for( i = 0; i < SubObjectCount; i++ )
-{
-  Bitmap_Dll_Loader::Bitmap_DrawImageGDI( PictureIndex[i], X + XList[i], Y + YList[i], WidthList[i], HeightList[i], 
+ if( AnimationFrameCount[i] > 0 )
+  Bitmap_Dll_Loader::Bitmap_DrawImageGDI( PictureIndex[i], XList[i], YList[i], WidthList[i], HeightList[i], 
       AnimationFrameSrcXList[i] + AnimationIndex[i] * (WidthList[i] + 1), AnimationFrameSrcYList[i], WidthList[i], HeightList[i] );      
-}
 
 /*    
   Bitmap_Dll_Loader::Bitmap_DrawImageGDI( PictureIndex, X, Y, Width, Height, 
@@ -2268,17 +2505,9 @@ for( i = 0; i < SubObjectCount; i++ )
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*  
 void StaticObject::Do()
 {
-int i;
 
-for( i = 0; i < SubObjectCount; i++ )
-{
-  if( TickCounter % AnimationDelay[i] == 0 )
-      AnimationIndex[i]++;
-      
-  if( AnimationIndex[i] >= AnimationFrameCount[i] )
-      AnimationIndex[i] = 0;    
-}
-
+  Animate();
+  
   TickCounter++;
   if( TickCounter >= TICK_COUNTER_MAX )
       TickCounter = 1;
@@ -2287,8 +2516,92 @@ for( i = 0; i < SubObjectCount; i++ )
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*  
 void StaticObject::Animate()
 {
+ int i;
+
+ for( i = 0; i < SubObjectCount; i++ )
+  if( AnimationFrameCount[i] > 1 )
+  {
+    if( TickCounter % AnimationDelay[i] == 0 )
+       AnimationIndex[i]++;      
+    if( AnimationIndex[i] >= AnimationFrameCount[i] )
+       AnimationIndex[i] = 0;    
+  }    
 }
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*
+int StaticObject::CheckCollide( Nasty *NastyObj )
+{
+  int xpointlist1[4], ypointlist1[4];
+  int xpointlist2[4], ypointlist2[4];
+  int collideflag = 0;
+  
+  xpointlist1[0] = NastyObj->X; ypointlist1[0] = NastyObj->Y;
+  xpointlist1[1] = NastyObj->X + NastyObj->Width; ypointlist1[1] = NastyObj->Y;
+  xpointlist1[2] = NastyObj->X; ypointlist1[2] = NastyObj->Y + NastyObj->Height;
+  xpointlist1[3] = NastyObj->X + NastyObj->Width; ypointlist1[3] = NastyObj->Y + NastyObj->Height;
+  
+  int i, j;
+  
+  for( i = 0; i < SubObjectCount; i++ )
+  {
+    if( CollideDetection[i] ==  0 || CollideDetection[i] == COLLIDE_DETECTION_SAUCER || ActiveFlag[i] == 0 )
+        continue;
+        
+    xpointlist2[0] = XList[i]; ypointlist2[0] = YList[i];
+    xpointlist2[1] = XList[i] + WidthList[i]; ypointlist2[1] = YList[i];
+    xpointlist2[2] = XList[i]; ypointlist2[2] = YList[i] + HeightList[i];
+    xpointlist2[3] = XList[i] + WidthList[i]; ypointlist2[3] = YList[i] + HeightList[i];
+   
+   for( j = 0; j < 4; j++ ) 
+    if( xpointlist2[0] <= xpointlist1[j] && xpointlist1[j] <= xpointlist2[1] 
+      && ypointlist2[0] <= ypointlist1[j] && ypointlist1[j] <= ypointlist2[2] )
+    {
+      collideflag = 1;
+      break;
+    } 
+    if( collideflag == 1 )
+        break;
+        
+   for( j = 0; j < 4; j++ ) 
+    if( xpointlist1[0] <= xpointlist2[j] && xpointlist2[j] <= xpointlist1[1] 
+      && ypointlist1[0] <= ypointlist2[j] && ypointlist2[j] <= ypointlist1[2] )
+    {
+      collideflag = 1;
+      break;
+    } 
+    if( collideflag == 1 )
+        break;        
+  }
+  
+  return collideflag;
+}
+//~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*  
+void StaticObject::SpawnNasties()
+{
+Nasty *nsty;
+World *WorldPtr = (World*)ItsWorld;
+int id, i;
+int num_list[] = { 1, 2, 3, 4, 7, 9, 5, 6, 8, 10, 11, 12, 21 };
+
+for( i = 0; i < 30; i++ )
+{
+     id = num_list[rand() % (sizeof(num_list)/sizeof(int) + 1)]; 
+     nsty = new Nasty(id);
+     
+     if( SubId == SID_LEFT_PORTAL )
+     {
+       nsty->X = XList[0] - 50; nsty->Y = YList[0] + 15;
+     }
+     else
+     if( SubId == SID_RIGHT_PORTAL )
+     {
+        nsty->X = XList[0] + 50; nsty->Y = YList[0] + 15; 
+     }
+     nsty->Angle = nsty->CalculateAngleTowardsPoint( GameObject::SCREEN_WIDTH_PIXELS/2, GameObject::SCREEN_HEIGHT_PIXELS/2 );
+     
+     WorldPtr->Add(nsty);
+}
+}
+//~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*  
 //########################################################################################
 //~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*  
 #endif

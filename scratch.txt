@@ -1,0 +1,57 @@
+
+Nasty *nsty;
+World *WorldPtr = (World*)ItsWorld;
+int id;
+int num_list[] = { 1, 2, 3, 4, 7, 9, 5, 6, 8, 10, 11, 12, 21 };
+
+for( i = 0; i < 20; i++ )
+{
+     id = num_list[rand() % (sizeof(num_list)/sizeof(int) + 1)]; 
+     nsty = new Nasty(id);
+     nsty->X = XList[0] - 40; nsty->Y = YList[0] + 15;
+     nsty->Angle = nsty->CalculateAngleTowardsPoint( GameObject::SCREEN_WIDTH_PIXELS/2, GameObject::SCREEN_HEIGHT_PIXELS/2 );
+     WorldPtr->Add(nsty);
+}
+
+
+
+
+
+Bitmap_Dll_Loader::Bitmap_LoadImageGDI( 0, "sprites_20x20.png" );    
+Bitmap_Dll_Loader::Bitmap_LoadImageGDI( 1, "sprites_40x40.png" );    
+Bitmap_Dll_Loader::Bitmap_LoadImageGDI( 2, "sprites_80x80.png" );    
+
+Bitmap_Dll_Loader::Bitmap_LoadImageGDI( 3, "static_tiles.png" );
+
+
+* 4 1
+6 3 0 
+* 5 2 
+
+* 0 *
+1 2 3 
+
+
+class StaticObject
+{
+  const static int SID_NOTHING = 0,
+    SID_CRYSTAL = 1,
+    SID_LEFT_PORTAL = 2,
+    SID_RIGHT_PORTAL = 3,
+    SID_EXIT_PORTAL = 4,
+    SID_UPPER_WALL = 5,
+    SID_LOWER_WALL = 6,
+    SID_LEFT_WALL = 7,
+    SID_RIGHT_WALL = 8;
+    
+  int CollideDetection[MAX_SUB_OBJECT_COUNT];
+  int ActiveFlag[MAX_SUB_OBJECT_COUNT];    
+}
+
+void Nasty::BounceSolidNoBoundary()
+
+int StaticObject::CheckCollide( Nasty *NastyObj )
+
+ItsWorld->GameObjectList[MAX_GAME_OBJECTS];
+
+int Nasty::CheckCollideStaticObjects();
